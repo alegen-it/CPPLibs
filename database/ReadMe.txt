@@ -35,3 +35,14 @@ AppWizard uses "TODO:" comments to indicate parts of the source code you
 should add to or customize.
 
 /////////////////////////////////////////////////////////////////////////////
+
+This library contains a class usde to connect and query a database.
+Reference is https://learn.microsoft.com/en-us/sql/connect/odbc/microsoft-odbc-driver-for-sql-server?view=sql-server-ver16
+
+Environment Where Tested
+===============================
+Visual Studio 2015
+Win32
+
+explanation of includes:
+<memory> for unique_ptr

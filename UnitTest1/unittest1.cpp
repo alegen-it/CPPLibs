@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "CppUnitTest.h"
-#include "..\database\Query.h";
+#include "..\database\Query.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
@@ -14,6 +14,7 @@ namespace UnitTest1
 		{
 			alegen_it::database::Query *pQuery = new alegen_it::database::Query();
 			Assert::IsNotNull(pQuery);
+			pQuery->~Query();
 		}
 
 	};
