@@ -15,6 +15,8 @@
 #include <iostream>
 #include <memory> 
 #include <vector>
+#include <locale>
+#include <codecvt>
 #include <string>
 #include <windows.h>
 #include <sql.h>
