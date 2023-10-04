@@ -279,6 +279,10 @@ std::wstring alegen_it::database::Query::ExecDirect(std::wstring sql)
 			//display query result
 			retVal = sqlResult;
 		}
+	}
+	else {
+		retVal = L"Query failed";
+		}
 
 	// Free ODBC handles and return
 	SQLFreeStmt(hstmt, SQL_CLOSE);
@@ -287,11 +291,6 @@ std::wstring alegen_it::database::Query::ExecDirect(std::wstring sql)
 	SQLFreeHandle(SQL_HANDLE_DBC, hDbc);
 	return retVal;
 
-	}
-
-	else {
-		return L"Query failed";
-	}
 }
 
 

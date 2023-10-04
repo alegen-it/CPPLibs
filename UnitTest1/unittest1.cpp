@@ -43,6 +43,31 @@ namespace UnitTest1
 			Assert::IsTrue(result.substr(0, 10) == std::wstring(L"Microsoft SQL Server 2022").substr(0,10), L"The expected version is Microsoft SQL Server 2022");
 		}
 
+		TEST_METHOD(TestCreate)
+		{
+			alegen_it::database::Query *pQuery = new alegen_it::database::Query();
+			pQuery->setConnectionParameters(L"localhost", L"database1", L"user1", L"Password1");
+
+			Logger::WriteMessage("Drop table ...");
+			std::wstring result = pQuery->ExecDirect(L"DROP TABLE dbo.TABLE2");
+			Logger::WriteMessage((L"... done. Result: " + result + L" - Message: " + pQuery->getMessage()).c_str());
+
+			Logger::WriteMessage("Create table ...");
+			result = pQuery->ExecDirect(L"CREATE TABLE dbo.TABLE2 (ID INT NOT NULL)");
+			Logger::WriteMessage((L"... done. Result: " + result + L" - Message: " + pQuery->getMessage()).c_str());
+
+			Assert::IsTrue(result == std::wstring(L""),  L"Result should be empty");
+
+			Logger::WriteMessage("Drop table ...");
+			result = pQuery->ExecDirect(L"DROP TABLE dbo.TABLE2");
+			Logger::WriteMessage((L"... done. Result: " + result + L" - Message: " + pQuery->getMessage()).c_str());
+
+			Assert::IsTrue(result == std::wstring(L""), L"Result should be empty");
+
+
+
+		}
+
 
 	};
 }
