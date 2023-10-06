@@ -293,6 +293,20 @@ std::wstring alegen_it::database::Query::ExecDirect(std::wstring sql)
 
 }
 
+void alegen_it::database::Query::addParameter(Parameter *pParameter)
+{
+	if (mpFirstParameter == NULL) {
+		mpFirstParameter = pParameter;
+		mpLastParameter = pParameter;
+		mpFirstParameter->setNext(nullptr);
+	}
+	else {
+		mpLastParameter->setNext(pParameter);
+		mpLastParameter = pParameter;
+	}
+
+}
+
 
 wstring convert(SQLCHAR *pchar) {
 	wstring result;

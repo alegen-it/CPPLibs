@@ -93,7 +93,34 @@ namespace UnitTest1
 
 		}
 
+		BEGIN_TEST_METHOD_ATTRIBUTE(TestSetParameter)
+			TEST_OWNER(L"Alegen")
+			TEST_PRIORITY(5)
+			END_TEST_METHOD_ATTRIBUTE()
+			TEST_METHOD(TestSetParameter)
+		{
 
+
+			struct {
+				float aFloat;
+				int aInt;
+				char aString[10];
+			} aStruct = { 1.1, 12, "pippo" };
+
+			Logger::WriteMessage("Add float param ...");
+			mpQuery->addParameter(new alegen_it::database::Parameter(&aStruct.aFloat, L"FLOAT1"));
+			Logger::WriteMessage(L"... done.");
+
+			Logger::WriteMessage("Add int param ...");
+			mpQuery->addParameter(new alegen_it::database::Parameter(&aStruct.aInt, L"INT1"));
+			Logger::WriteMessage(L"... done.");
+
+			Logger::WriteMessage("Add string param ...");
+			mpQuery->addParameter(new alegen_it::database::Parameter(aStruct.aString, 10, L"STRING1"));
+			Logger::WriteMessage(L"... done.");
+
+
+		}
 
 	};
 }

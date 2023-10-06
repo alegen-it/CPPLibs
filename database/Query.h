@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include "Parameter.h"
 
 namespace alegen_it {
 	namespace database {
@@ -11,6 +12,8 @@ namespace alegen_it {
 			// pimpl idiom for private members
 			class impl;
 			std::unique_ptr<impl> pimpl; // opaque type here
+			Parameter *mpFirstParameter = nullptr;
+			Parameter *mpLastParameter = nullptr;
 			
 
 		public:
@@ -22,6 +25,8 @@ namespace alegen_it {
 			void setConnectionParameters(std::wstring serverName, std::wstring databaseName, std::wstring userName, std::wstring password);
 			std::wstring getMessage();
 			std::wstring ExecDirect(std::wstring sql);
+
+			void addParameter(Parameter *pParameter);
 		};
 	}
 }
