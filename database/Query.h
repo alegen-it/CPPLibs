@@ -27,6 +27,8 @@ namespace alegen_it {
 			std::wstring ExecDirect(std::wstring sql);
 
 			void addParameter(Parameter *pParameter);
+			bool Insert(std::wstring TableName);
+			void ClearParameters();
 		};
 	}
 }

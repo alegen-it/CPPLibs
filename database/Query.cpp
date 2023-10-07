@@ -15,6 +15,7 @@ using namespace std;
 wstring errorInfo(SQLSMALLINT handleType, SQLHANDLE handle);
 wstring processError(SQLRETURN retcode, SQLHSTMT hstmt);
 wstring convert(SQLCHAR * pChar);
+void freeResources(SQLHSTMT hstmt, SQLHDBC hDbc);
 
 namespace alegen_it {
 	namespace database {
@@ -31,11 +32,14 @@ namespace alegen_it {
 			void HandleDiagnosticRecord(SQLHANDLE hHandle, SQLSMALLINT hType, RETCODE RetCode);
 			SQLHDBC Connect();
 			wstring buildConnectionString();
+			SQLSMALLINT getCType(c_type cType);
+			SQLSMALLINT getSQLType(c_type cType);
+			bool bindParameter(Parameter * parameter, SQLHSTMT hstmt, int iPar, SQLSMALLINT fParamType);
 		};
 
 
 
-		Query::Query(): pimpl(new impl)
+		Query::Query() : pimpl(new impl)
 		{
 			// Allocate an environment
 			if (SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &pimpl->mHEnv) == SQL_ERROR)
@@ -66,7 +70,40 @@ namespace alegen_it {
 
 
 //
+bool alegen_it::database::Query::impl::bindParameter(Parameter * parameter, SQLHSTMT hstmt, int iPar, SQLSMALLINT fParamType)
+{
+	SQLSMALLINT fCType = getCType(parameter->getType());
+	SQLSMALLINT fSQLType = getSQLType(parameter->getType());
 
+	return CheckRetCode(SQLBindParameter(hstmt, iPar, fParamType, fCType, fSQLType, parameter->getSize(), 0, (SQLPOINTER)parameter->getVariable(), parameter->getSize(), NULL), hstmt, SQL_HANDLE_STMT);
+
+}
+
+SQLSMALLINT alegen_it::database::Query::impl::getCType(c_type cType)
+{
+	switch (cType) {
+	case c_type_float:
+		return SQL_C_FLOAT;
+	case c_type_int:
+		return SQL_C_LONG;
+	case c_type_char:
+		return SQL_C_CHAR;
+	}
+	return SQLSMALLINT();
+}
+
+SQLSMALLINT alegen_it::database::Query::impl::getSQLType(c_type cType)
+{
+	switch (cType) {
+	case c_type_float:
+		return SQL_REAL;
+	case c_type_int:
+		return SQL_INTEGER;
+	case c_type_char:
+		return SQL_VARCHAR;
+	}
+	return SQLSMALLINT();
+}
 
 
 //
@@ -314,4 +351,80 @@ wstring convert(SQLCHAR *pchar) {
 	result = converter.from_bytes(*pchar);
 	return result;
 
+}
+
+
+bool alegen_it::database::Query::Insert(std::wstring TableName)
+{
+	//get statement
+	wstring retVal;
+	SQLHDBC     hDbc = pimpl->Connect();
+	if (!hDbc) {
+		return L"No connection to database";
+	}
+
+	SQLHSTMT hstmt = NULL;
+	bool result = pimpl->CheckRetCode(SQLAllocHandle(SQL_HANDLE_STMT, hDbc, &hstmt), hDbc, SQL_HANDLE_DBC);
+
+	if (!result) {
+		return L"Unable to allocate statement handle";
+	}
+
+	// bind parameters
+	Parameter *parameter = mpFirstParameter;
+	wstring sql1 = L"INSERT INTO " + TableName + L"(";
+	wstring sql2 = L" VALUES (";
+	int iPar = 1;
+	while (parameter != NULL) {
+		sql1 = sql1 + parameter->getColumnName();
+		sql2 = sql2 + L"?";
+
+		result = pimpl->bindParameter(parameter, hstmt, iPar++, SQL_PARAM_INPUT);
+		if (!result) {
+			freeResources(hstmt, hDbc);
+			return false;
+		}
+
+		parameter = parameter->getNext();
+		if (parameter != NULL) {
+			sql1 = sql1 + L",";
+			sql2 = sql2 + L",";
+		}
+		else {
+			sql1 = sql1 + L") ";
+			sql2 = sql2 + L") ";
+		}
+	}
+
+	// execdirect
+	wstring sql = sql1 + sql2;
+	result = pimpl->CheckRetCode(SQLExecDirect(hstmt, (SQLWCHAR*)sql.c_str(), SQL_NTS), hstmt, SQL_HANDLE_STMT);
+
+	// free resources
+	freeResources(hstmt, hDbc);
+	return result;
+}
+
+
+void freeResources(SQLHSTMT hstmt, SQLHDBC hDbc) {
+	// Free ODBC handles and return
+	if (hstmt) {
+		SQLFreeStmt(hstmt, SQL_CLOSE);
+		SQLFreeHandle(SQL_HANDLE_STMT, hstmt);
+	}
+	if (hDbc) {
+		SQLDisconnect(hDbc);
+		SQLFreeHandle(SQL_HANDLE_DBC, hDbc);
+	}
+
+}
+
+
+void alegen_it::database::Query::ClearParameters()
+{
+	while (mpFirstParameter != NULL) {
+		Parameter *parameter = mpFirstParameter;
+		mpFirstParameter = parameter->getNext();
+		parameter->~Parameter();
+	}
 }

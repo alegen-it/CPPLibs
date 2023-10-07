@@ -22,7 +22,7 @@ namespace alegen_it {
 			c_type mVar_cType;
 			std::wstring mColumnName;
 			Parameter *mNext = nullptr;
-			int m_size;
+			int mSize;
 
 		public:
 
@@ -30,6 +30,24 @@ namespace alegen_it {
 			{
 				mNext = next;
 			}
+			Parameter * getNext()
+			{
+				return mNext;
+			}
+			std::wstring getColumnName() {
+				return mColumnName;
+			}
+			void* getVariable() {
+				return mpVariable;
+			}
+
+			c_type getType() {
+				return mVar_cType;
+			}
+			int getSize() {
+				return mSize;
+			}
+
 		};
 	}
 }

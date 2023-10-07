@@ -122,5 +122,45 @@ namespace UnitTest1
 
 		}
 
+
+
+		BEGIN_TEST_METHOD_ATTRIBUTE(TestInsert)
+			TEST_OWNER(L"Alegen")
+			TEST_PRIORITY(4)
+		END_TEST_METHOD_ATTRIBUTE()
+		TEST_METHOD(TestInsert)
+		{
+			//create the table
+			Logger::WriteMessage("Create table ...");
+			std::wstring result = mpQuery->ExecDirect(L"CREATE TABLE dbo.TABLE2 (ID INT NOT NULL)");
+			Logger::WriteMessage((L"... done. Result: " + result + L" - Message: " + mpQuery->getMessage()).c_str());
+			Logger::WriteMessage(result.c_str());
+			Assert::IsTrue(result == std::wstring(L""), L"Result should be empty");
+
+			mpQuery->ClearParameters();
+			Logger::WriteMessage("Add int param ...");
+			int id;
+			mpQuery->addParameter(new alegen_it::database::Parameter(&id, L"ID"));
+			Logger::WriteMessage((L"... done. Message: " + mpQuery->getMessage()).c_str());
+
+			Logger::WriteMessage("Insert 1 ...");
+			id = 1;
+			bool result1 = mpQuery->Insert(L"TABLE2");
+			Logger::WriteMessage((L"... done. Message: " + mpQuery->getMessage()).c_str());
+			Assert::IsTrue(result1);
+			Logger::WriteMessage("Insert 3 ...");
+			id = 3;
+			result1 = mpQuery->Insert(L"TABLE2");
+			Logger::WriteMessage((L"... done. Message: " + mpQuery->getMessage()).c_str());
+			Assert::IsTrue(result1);
+
+
+
+		}
+
+
 	};
+
+
+
 }
