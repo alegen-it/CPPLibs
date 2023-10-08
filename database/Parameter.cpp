@@ -31,4 +31,16 @@ alegen_it::database::Parameter::~Parameter()
 }
 
 
-
+size_t alegen_it::database::Parameter::getBufferSize()
+{
+	switch (mVar_cType) {
+	case c_type_float:
+		return sizeof(float);
+	case c_type_int:
+		return sizeof(int);
+	case c_type_char:
+		return mSize;
+	default:
+		return 0;
+	}
+}

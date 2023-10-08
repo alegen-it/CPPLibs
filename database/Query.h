@@ -14,7 +14,11 @@ namespace alegen_it {
 			std::unique_ptr<impl> pimpl; // opaque type here
 			Parameter *mpFirstParameter = nullptr;
 			Parameter *mpLastParameter = nullptr;
-			
+			// first output parameter of the linked list
+			Parameter *mpFirstOutParameter = nullptr;
+			// last output parameter of the linked list
+			Parameter *mpLastOutParameter = nullptr;
+
 
 		public:
 			Query();
@@ -27,7 +31,9 @@ namespace alegen_it {
 			std::wstring ExecDirect(std::wstring sql);
 
 			void addParameter(Parameter *pParameter);
+			void addOutParameter(Parameter *pParameter);
 			bool Insert(std::wstring TableName);
+			bool Select(std::wstring TableName);
 			void ClearParameters();
 		};
 	}

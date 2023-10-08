@@ -48,6 +48,8 @@ namespace alegen_it {
 				return mSize;
 			}
 
+			size_t getBufferSize(); 
+
 		};
 	}
 }

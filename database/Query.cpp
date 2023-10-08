@@ -35,6 +35,7 @@ namespace alegen_it {
 			SQLSMALLINT getCType(c_type cType);
 			SQLSMALLINT getSQLType(c_type cType);
 			bool bindParameter(Parameter * parameter, SQLHSTMT hstmt, int iPar, SQLSMALLINT fParamType);
+			bool bindColumn(Parameter * parameter, SQLHSTMT hstmt, int iPar);
 		};
 
 
@@ -69,7 +70,9 @@ namespace alegen_it {
 }
 
 
-//
+/************************************************/
+/*/
+/************************************************/
 bool alegen_it::database::Query::impl::bindParameter(Parameter * parameter, SQLHSTMT hstmt, int iPar, SQLSMALLINT fParamType)
 {
 	SQLSMALLINT fCType = getCType(parameter->getType());
@@ -78,6 +81,21 @@ bool alegen_it::database::Query::impl::bindParameter(Parameter * parameter, SQLH
 	return CheckRetCode(SQLBindParameter(hstmt, iPar, fParamType, fCType, fSQLType, parameter->getSize(), 0, (SQLPOINTER)parameter->getVariable(), parameter->getSize(), NULL), hstmt, SQL_HANDLE_STMT);
 
 }
+
+
+/************************************************/
+/* Bind columns for SELECT queries              */
+/************************************************/
+bool alegen_it::database::Query::impl::bindColumn(Parameter * parameter, SQLHSTMT hstmt, int iCol)
+{
+	SQLSMALLINT fCType = getCType(parameter->getType());
+	SQLSMALLINT fSQLType = getSQLType(parameter->getType());
+
+	//return CheckRetCode(SQLBindParameter(hstmt, iPar, fParamType, fCType, fSQLType, parameter->getSize(), 0, (SQLPOINTER)parameter->getVariable(), parameter->getSize(), NULL), hstmt, SQL_HANDLE_STMT);
+	return CheckRetCode(SQLBindCol(hstmt, iCol, fCType, (SQLPOINTER)parameter->getVariable(), parameter->getBufferSize(), NULL), hstmt, SQL_HANDLE_STMT);
+
+}
+
 
 SQLSMALLINT alegen_it::database::Query::impl::getCType(c_type cType)
 {
@@ -234,7 +252,7 @@ bool alegen_it::database::Query::impl::CheckRetCode(RETCODE RetCode, SQLHANDLE h
 	else {
 		mMessage = L"SQL_SUCCESS!";
 	}
-	if (RetCode == SQL_ERROR) {
+	if (RetCode == SQL_ERROR || RetCode == SQL_NO_DATA_FOUND ) {
 		return false;
 	}
 	else {
@@ -344,6 +362,25 @@ void alegen_it::database::Query::addParameter(Parameter *pParameter)
 
 }
 
+/******************************************************/
+/* Add a parameter to bind a column in a select query */
+/******************************************************/
+void alegen_it::database::Query::addOutParameter(Parameter *pParameter)
+{
+	if (mpFirstOutParameter == NULL) {
+		mpFirstOutParameter = pParameter;
+		mpLastOutParameter = pParameter;
+		mpFirstOutParameter->setNext(nullptr);
+	}
+	else {
+		mpLastOutParameter->setNext(pParameter);
+		mpLastOutParameter = pParameter;
+	}
+
+}
+
+
+
 
 wstring convert(SQLCHAR *pchar) {
 	wstring result;
@@ -406,6 +443,76 @@ bool alegen_it::database::Query::Insert(std::wstring TableName)
 }
 
 
+
+bool alegen_it::database::Query::Select(std::wstring TableName)
+{
+	//get statement
+	wstring retVal;
+	SQLHDBC     hDbc = pimpl->Connect();
+	if (!hDbc) {
+		return L"No connection to database";
+	}
+
+	SQLHSTMT hstmt = NULL;
+	bool result = pimpl->CheckRetCode(SQLAllocHandle(SQL_HANDLE_STMT, hDbc, &hstmt), hDbc, SQL_HANDLE_DBC);
+
+	if (!result) {
+		return L"Unable to allocate statement handle";
+	}
+
+	// bind parameters
+	Parameter *parameter = mpFirstParameter;
+	Parameter *outParameter = mpFirstOutParameter;
+	wstring sql1 = L"SELECT  ";
+	wstring sql2 = L" FROM " + TableName + L" WHERE ";
+
+	int iPar = 1;
+	while (parameter != NULL || outParameter !=NULL) {
+
+		if (outParameter != NULL) {
+			sql1 = sql1 + outParameter->getColumnName();
+			result = pimpl->bindColumn(outParameter, hstmt, iPar);
+			if (!result) {
+				freeResources(hstmt, hDbc);
+				return false;
+			}
+			outParameter = outParameter->getNext();
+			if (outParameter != NULL) {
+				sql1 = sql1 + L",";
+			}
+		}
+
+		if (parameter != NULL) {
+			if (parameter != NULL) {
+				sql2 = sql2 + parameter->getColumnName() + L" = ?";
+				result = pimpl->bindParameter(parameter, hstmt, iPar++, SQL_PARAM_INPUT);
+				if (!result) {
+					freeResources(hstmt, hDbc);
+					return false;
+				}
+				parameter = parameter->getNext();
+				if (parameter != NULL) {
+					sql2 = sql2 + L", ";
+				}
+			}
+		}
+	}
+
+	// execdirect
+	wstring sql = sql1 + sql2;
+	result = pimpl->CheckRetCode(SQLExecDirect(hstmt, (SQLWCHAR*)sql.c_str(), SQL_NTS), hstmt, SQL_HANDLE_STMT);
+
+	if (result) {
+		result = pimpl->CheckRetCode(SQLFetch(hstmt), hstmt, SQL_HANDLE_STMT);
+	}
+
+	// free resources
+	freeResources(hstmt, hDbc);
+	return result;
+}
+
+
+
 void freeResources(SQLHSTMT hstmt, SQLHDBC hDbc) {
 	// Free ODBC handles and return
 	if (hstmt) {
@@ -427,4 +534,11 @@ void alegen_it::database::Query::ClearParameters()
 		mpFirstParameter = parameter->getNext();
 		parameter->~Parameter();
 	}
+
+	while (mpFirstOutParameter != NULL) {
+		Parameter *parameter = mpFirstOutParameter;
+		mpFirstOutParameter = parameter->getNext();
+		parameter->~Parameter();
+	}
+
 }
