@@ -443,8 +443,13 @@ bool alegen_it::database::Query::Insert(std::wstring TableName)
 }
 
 
-
-bool alegen_it::database::Query::Select(std::wstring TableName)
+/**********************************************************************/
+/* The TableName must contain all selected tables separated by commas */
+/* the where clause must contain the join conditions without WHERE keyword*/
+/* example TableName = L"Table1, Table2"
+/* where = L"Table1.table2ID = Table2.ID"                               */
+/**********************************************************************/
+bool alegen_it::database::Query::Select(std::wstring TableName, std::wstring where)
 {
 	//get statement
 	wstring retVal;
@@ -464,7 +469,19 @@ bool alegen_it::database::Query::Select(std::wstring TableName)
 	Parameter *parameter = mpFirstParameter;
 	Parameter *outParameter = mpFirstOutParameter;
 	wstring sql1 = L"SELECT  ";
-	wstring sql2 = L" FROM " + TableName + L" WHERE ";
+	wstring sql2 = L" FROM " + TableName;
+
+	if (where != L"" || mpFirstParameter != NULL) {
+		if (where != L"") {
+			sql2 = sql2 + L" WHERE (" + where + L") ";
+			if (mpFirstParameter) {
+				sql2 = sql2 + L"AND (";
+			}
+		} else {
+			sql2 = sql2 + L" WHERE (";
+		}
+	}
+
 
 	int iPar = 1;
 	while (parameter != NULL || outParameter !=NULL) {
@@ -484,18 +501,20 @@ bool alegen_it::database::Query::Select(std::wstring TableName)
 
 		if (parameter != NULL) {
 			if (parameter != NULL) {
-				sql2 = sql2 + parameter->getColumnName() + L" = ?";
-				result = pimpl->bindParameter(parameter, hstmt, iPar++, SQL_PARAM_INPUT);
+				sql2 = sql2 + parameter->getColumnName() + L" = ?)";
+				result = pimpl->bindParameter(parameter, hstmt, iPar, SQL_PARAM_INPUT);
 				if (!result) {
 					freeResources(hstmt, hDbc);
 					return false;
 				}
 				parameter = parameter->getNext();
 				if (parameter != NULL) {
-					sql2 = sql2 + L", ";
+					sql2 = sql2 + L" AND (";
 				}
 			}
 		}
+
+		iPar++;
 	}
 
 	// execdirect

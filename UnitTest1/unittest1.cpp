@@ -294,6 +294,146 @@ namespace UnitTest1
 		}
 
 
+
+		BEGIN_TEST_METHOD_ATTRIBUTE(TestSelect2Tables)
+			TEST_OWNER(L"Alegen")
+			TEST_PRIORITY(5)
+			END_TEST_METHOD_ATTRIBUTE()
+			TEST_METHOD(TestSelect2Tables)
+		{
+			//create the table
+			Logger::WriteMessage("Create tables ...");
+
+			//SQL SERVER SYNTAX FOR AUTO INCREMENT ID
+			std::wstring result = mpQuery->ExecDirect(L"DROP TABLE dbo.TABLE3");
+			result = mpQuery->ExecDirect(L"CREATE TABLE dbo.TABLE3 (ID INT IDENTITY(1,1) PRIMARY KEY,INTVALUE1 INT, FLOATVALUE1 FLOAT, STRINGVALUE1 varchar(10) )");
+			Logger::WriteMessage((L"... done. Result: " + result + L" - Message: " + mpQuery->getMessage()).c_str());
+			Logger::WriteMessage(result.c_str());
+			Assert::IsTrue(result == std::wstring(L""), L"Result should be empty");
+
+			result = mpQuery->ExecDirect(L"DROP TABLE dbo.TABLE4");
+			result = mpQuery->ExecDirect(L"CREATE TABLE dbo.TABLE4 (ID INT IDENTITY(1,1) PRIMARY KEY,INTVALUE4 INT, FLOATVALUE4 FLOAT, STRINGVALUE4 varchar(10) )");
+			Logger::WriteMessage((L"... done. Result: " + result + L" - Message: " + mpQuery->getMessage()).c_str());
+			Logger::WriteMessage(result.c_str());
+			Assert::IsTrue(result == std::wstring(L""), L"Result should be empty");
+
+
+			mpQuery->ClearParameters();
+			Logger::WriteMessage("Add int param ...");
+			int intValue1;
+			mpQuery->addParameter(new alegen_it::database::Parameter(&intValue1, L"INTVALUE1"));
+			Logger::WriteMessage((L"... done. Message: " + mpQuery->getMessage()).c_str());
+
+			Logger::WriteMessage("Add float param ...");
+			float floatValue1;
+			mpQuery->addParameter(new alegen_it::database::Parameter(&floatValue1, L"FLOATVALUE1"));
+			Logger::WriteMessage((L"... done. Message: " + mpQuery->getMessage()).c_str());
+
+			Logger::WriteMessage("Add string param ...");
+			char stringValue1[10];
+			mpQuery->addParameter(new alegen_it::database::Parameter(stringValue1, 10, L"STRINGVALUE1"));
+			Logger::WriteMessage((L"... done. Message: " + mpQuery->getMessage()).c_str());
+
+
+			Logger::WriteMessage("Insert 1, 12.3, pippo ...");
+			intValue1 = 1;
+			floatValue1 = 12.3;
+			strcpy(stringValue1, "pippo");
+			bool result1 = mpQuery->Insert(L"TABLE3");
+			Logger::WriteMessage((L"... done. Message: " + mpQuery->getMessage()).c_str());
+			Assert::IsTrue(result1);
+
+			Logger::WriteMessage("Insert 3, 12.5, success ...");
+			intValue1 = 3;
+			floatValue1 = 12.5;
+			strcpy(stringValue1, "success");
+			result1 = mpQuery->Insert(L"TABLE3");
+			Logger::WriteMessage((L"... done. Message: " + mpQuery->getMessage()).c_str());
+			Assert::IsTrue(result1);
+
+
+			mpQuery->ClearParameters();
+			Logger::WriteMessage("Add int param ...");
+			int intValue4;
+			mpQuery->addParameter(new alegen_it::database::Parameter(&intValue4, L"INTVALUE4"));
+			Logger::WriteMessage((L"... done. Message: " + mpQuery->getMessage()).c_str());
+
+			Logger::WriteMessage("Add float param ...");
+			float floatValue4;
+			mpQuery->addParameter(new alegen_it::database::Parameter(&floatValue4, L"FLOATVALUE4"));
+			Logger::WriteMessage((L"... done. Message: " + mpQuery->getMessage()).c_str());
+
+			Logger::WriteMessage("Add string param ...");
+			char stringValue4[10];
+			mpQuery->addParameter(new alegen_it::database::Parameter(stringValue4, 10, L"STRINGVALUE4"));
+			Logger::WriteMessage((L"... done. Message: " + mpQuery->getMessage()).c_str());
+
+
+			Logger::WriteMessage("Insert 2, 12.8, pippo4 ...");
+			intValue4 = 2;
+			floatValue4 = 12.8;
+			strcpy(stringValue4, "pippo4");
+			result1 = mpQuery->Insert(L"TABLE4");
+			Logger::WriteMessage((L"... done. Message: " + mpQuery->getMessage()).c_str());
+			Assert::IsTrue(result1);
+
+			Logger::WriteMessage("Insert 3, 12.9, pippo5 ...");
+			intValue4 = 3;
+			floatValue4 = 12.9;
+			strcpy(stringValue4, "pippo5");
+			result1 = mpQuery->Insert(L"TABLE4");
+			Logger::WriteMessage((L"... done. Message: " + mpQuery->getMessage()).c_str());
+			Assert::IsTrue(result1);
+
+
+			/*****************************/
+			/* select phase              */
+			/*****************************/
+
+			mpQuery->ClearParameters();
+
+
+			Logger::WriteMessage("Add float output param ...");
+			float floatValue2 = -1.0;
+			mpQuery->addOutParameter(new alegen_it::database::Parameter(&floatValue2, L"TABLE3.FLOATVALUE1"));
+			Logger::WriteMessage((L"... done. Message: " + mpQuery->getMessage()).c_str());
+
+			Logger::WriteMessage("Add string param ...");
+			char stringValue2[10] = "not found";
+			mpQuery->addOutParameter(new alegen_it::database::Parameter(stringValue2, 10, L"TABLE3.STRINGVALUE1"));
+			Logger::WriteMessage((L"... done. Message: " + mpQuery->getMessage()).c_str());
+
+			Logger::WriteMessage("Add string param ...");
+			char stringValue5[10] = "not found";
+			mpQuery->addOutParameter(new alegen_it::database::Parameter(stringValue5, 10, L"TABLE4.STRINGVALUE4"));
+			Logger::WriteMessage((L"... done. Message: " + mpQuery->getMessage()).c_str());
+
+
+			Logger::WriteMessage("Select ");
+			result1 = mpQuery->Select(L"TABLE3, TABLE4", L"TABLE3.INTVALUE1 = TABLE4.INTVALUE4");
+			Logger::WriteMessage((L"... done. Message: " + mpQuery->getMessage()).c_str());
+			Assert::IsTrue(result1);
+
+			char message[100];
+			sprintf(message, "FLOATVALUE1 = %f", floatValue2);
+			Logger::WriteMessage(message);
+
+			sprintf(message, "STRINGVALUE1 = %s", stringValue2);
+			Logger::WriteMessage(message);
+			Assert::AreEqual("success", stringValue2);
+			
+
+
+			sprintf(message, "STRINGVALUE4 = %s", stringValue4);
+			Logger::WriteMessage(message);
+
+
+
+
+		}
+
+
+
 	};
 
 

@@ -33,7 +33,7 @@ namespace alegen_it {
 			void addParameter(Parameter *pParameter);
 			void addOutParameter(Parameter *pParameter);
 			bool Insert(std::wstring TableName);
-			bool Select(std::wstring TableName);
+			bool Select(std::wstring TableName, std::wstring where = L"");
 			void ClearParameters();
 		};
 	}
