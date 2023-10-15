@@ -15,9 +15,9 @@ namespace alegen_it {
 			Parameter *mpFirstParameter = nullptr;
 			Parameter *mpLastParameter = nullptr;
 			// first output parameter of the linked list
-			Parameter *mpFirstOutParameter = nullptr;
+			Parameter *mpFirstWhereParameter = nullptr;
 			// last output parameter of the linked list
-			Parameter *mpLastOutParameter = nullptr;
+			Parameter *mpLastWhereParameter = nullptr;
 
 
 		public:
@@ -31,9 +31,10 @@ namespace alegen_it {
 			std::wstring ExecDirect(std::wstring sql);
 
 			void addParameter(Parameter *pParameter);
-			void addOutParameter(Parameter *pParameter);
+			void addWhereParameter(Parameter *pParameter);
 			bool Insert(std::wstring TableName);
 			bool Select(std::wstring TableName, std::wstring where = L"");
+			bool Update(std::wstring TableName);
 			void ClearParameters();
 		};
 	}

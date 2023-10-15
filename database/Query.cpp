@@ -365,16 +365,16 @@ void alegen_it::database::Query::addParameter(Parameter *pParameter)
 /******************************************************/
 /* Add a parameter to bind a column in a select query */
 /******************************************************/
-void alegen_it::database::Query::addOutParameter(Parameter *pParameter)
+void alegen_it::database::Query::addWhereParameter(Parameter *pParameter)
 {
-	if (mpFirstOutParameter == NULL) {
-		mpFirstOutParameter = pParameter;
-		mpLastOutParameter = pParameter;
-		mpFirstOutParameter->setNext(nullptr);
+	if (mpFirstWhereParameter == NULL) {
+		mpFirstWhereParameter = pParameter;
+		mpLastWhereParameter = pParameter;
+		mpFirstWhereParameter->setNext(nullptr);
 	}
 	else {
-		mpLastOutParameter->setNext(pParameter);
-		mpLastOutParameter = pParameter;
+		mpLastWhereParameter->setNext(pParameter);
+		mpLastWhereParameter = pParameter;
 	}
 
 }
@@ -467,14 +467,14 @@ bool alegen_it::database::Query::Select(std::wstring TableName, std::wstring whe
 
 	// bind parameters
 	Parameter *parameter = mpFirstParameter;
-	Parameter *outParameter = mpFirstOutParameter;
+	Parameter *whereParameter = mpFirstWhereParameter;
 	wstring sql1 = L"SELECT  ";
 	wstring sql2 = L" FROM " + TableName;
 
-	if (where != L"" || mpFirstParameter != NULL) {
+	if (where != L"" || mpFirstWhereParameter != NULL) {
 		if (where != L"") {
 			sql2 = sql2 + L" WHERE (" + where + L") ";
-			if (mpFirstParameter) {
+			if (mpFirstWhereParameter) {
 				sql2 = sql2 + L"AND (";
 			}
 		} else {
@@ -484,31 +484,31 @@ bool alegen_it::database::Query::Select(std::wstring TableName, std::wstring whe
 
 
 	int iPar = 1;
-	while (parameter != NULL || outParameter !=NULL) {
+	while (parameter != NULL || whereParameter !=NULL) {
 
-		if (outParameter != NULL) {
-			sql1 = sql1 + outParameter->getColumnName();
-			result = pimpl->bindColumn(outParameter, hstmt, iPar);
+		if (parameter != NULL) {
+			sql1 = sql1 + parameter->getColumnName();
+			result = pimpl->bindColumn(parameter, hstmt, iPar);
 			if (!result) {
 				freeResources(hstmt, hDbc);
 				return false;
 			}
-			outParameter = outParameter->getNext();
-			if (outParameter != NULL) {
+			parameter = parameter->getNext();
+			if (parameter != NULL) {
 				sql1 = sql1 + L",";
 			}
 		}
 
-		if (parameter != NULL) {
-			if (parameter != NULL) {
-				sql2 = sql2 + parameter->getColumnName() + L" = ?)";
-				result = pimpl->bindParameter(parameter, hstmt, iPar, SQL_PARAM_INPUT);
+		if (whereParameter != NULL) {
+			if (whereParameter != NULL) {
+				sql2 = sql2 + whereParameter->getColumnName() + L" = ?)";
+				result = pimpl->bindParameter(whereParameter, hstmt, iPar, SQL_PARAM_INPUT);
 				if (!result) {
 					freeResources(hstmt, hDbc);
 					return false;
 				}
-				parameter = parameter->getNext();
-				if (parameter != NULL) {
+				whereParameter = whereParameter->getNext();
+				if (whereParameter != NULL) {
 					sql2 = sql2 + L" AND (";
 				}
 			}
@@ -529,6 +529,81 @@ bool alegen_it::database::Query::Select(std::wstring TableName, std::wstring whe
 	freeResources(hstmt, hDbc);
 	return result;
 }
+
+
+/**********************************************************************/
+/* The TableName must contain one table name                          */
+/* OutParameters are not used                                         */
+/* parameters are used for the update values                       */
+/* while outParameters are used for the where clause                  */
+/**********************************************************************/
+bool alegen_it::database::Query::Update(std::wstring TableName)
+{
+	//get statement
+	wstring retVal;
+	SQLHDBC     hDbc = pimpl->Connect();
+	if (!hDbc) {
+		return L"No connection to database";
+	}
+
+	SQLHSTMT hstmt = NULL;
+	bool result = pimpl->CheckRetCode(SQLAllocHandle(SQL_HANDLE_STMT, hDbc, &hstmt), hDbc, SQL_HANDLE_DBC);
+
+	if (!result) {
+		return L"Unable to allocate statement handle";
+	}
+
+	// bind parameters
+	Parameter *parameter = mpFirstParameter;
+	Parameter *whereParameter = mpFirstWhereParameter;
+	wstring sql1 = L"UPDATE " + TableName + L" SET ";
+	wstring sql2 = L"";
+
+	if ( mpFirstWhereParameter != NULL) {
+		sql2 = sql2 + L" WHERE ( ";
+	}
+
+
+	int iPar = 1;
+	while (parameter != NULL) {
+			sql1 = sql1 + parameter->getColumnName() + L" = ?";
+			result = pimpl->bindParameter(parameter, hstmt, iPar++, SQL_PARAM_INPUT);
+			if (!result) {
+				freeResources(hstmt, hDbc);
+				return false;
+			}
+			parameter = parameter->getNext();
+			if (parameter != NULL) {
+				sql1 = sql1 + L",";
+			}
+
+	}
+
+	while (whereParameter != NULL) {
+			if (whereParameter != NULL) {
+				sql2 = sql2 + whereParameter->getColumnName() + L" = ? ) ";
+				result = pimpl->bindParameter(whereParameter, hstmt, iPar++, SQL_PARAM_INPUT);
+				if (!result) {
+					freeResources(hstmt, hDbc);
+					return false;
+				}
+				whereParameter = whereParameter->getNext();
+				if (whereParameter != NULL) {
+					sql2 = sql2 + L" AND ( ";
+				}
+		}
+
+	}
+
+	// execdirect
+	wstring sql = sql1 + sql2;
+	result = pimpl->CheckRetCode(SQLExecDirect(hstmt, (SQLWCHAR*)sql.c_str(), SQL_NTS), hstmt, SQL_HANDLE_STMT);
+
+	// free resources
+	freeResources(hstmt, hDbc);
+	return result;
+}
+
 
 
 
@@ -554,9 +629,9 @@ void alegen_it::database::Query::ClearParameters()
 		parameter->~Parameter();
 	}
 
-	while (mpFirstOutParameter != NULL) {
-		Parameter *parameter = mpFirstOutParameter;
-		mpFirstOutParameter = parameter->getNext();
+	while (mpFirstWhereParameter != NULL) {
+		Parameter *parameter = mpFirstWhereParameter;
+		mpFirstWhereParameter = parameter->getNext();
 		parameter->~Parameter();
 	}
 
